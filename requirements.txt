@@ -1,0 +1,28 @@
+# Project requirements for Universal Invoice Processing Engine
+# Core runtime
+streamlit>=1.26.0
+pillow>=9.5.0
+requests>=2.31.0
+
+# Google authentication for Generative Language / Gemini access
+google-auth>=2.20.0
+
+# Image / PDF processing
+pdf2image>=1.16.3
+pdfplumber>=0.7.6
+opencv-python>=4.7.0.72
+numpy>=1.24.2
+
+# Barcode / QR decoding
+pyzbar>=0.1.8
+
+# Vision LLM / model support (optional if using DONUT components)
+transformers
+torch
+
+# OCR (optional, used by legacy components)
+pytesseract
+
+# Notes:
+# - On Windows, install Poppler for `pdf2image` (not a pip package).
+# - `pyzbar` requires the ZBar runtime on the host OS.

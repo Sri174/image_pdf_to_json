@@ -1,0 +1,180 @@
+{
+  "header": {
+    "vendor_details": {
+      "company_name_en": "",
+      "company_name_ar": "",
+      "address": "",
+      "contact_info": {
+        "head_office_tel": "",
+        "head_office_fax": "",
+        "showroom_tel": "",
+        "showroom_fax": "",
+        "email": ""
+      },
+      "tax_registration_number": ""
+    },
+    "invoice_details": {
+      "invoice_number": "",
+      "invoice_date": "",
+      "invoice_type": "",
+      "order_number": "",
+      "order_date": "",
+      "page_number": "",
+      "purchase_order_number": "",
+      "due_date": "",
+      "payment_terms": "",
+      "personnel": {
+        "sales_person": "",
+        "supervisor": "",
+        "merchandiser": ""
+      }
+    },
+    "customer_details": {
+      "customer_code": "",
+      "name": "",
+      "address": "",
+      "phone": "",
+      "email": "",
+      "trn": ""
+    }
+  },
+  "document_type": "invoice",
+  "company": {
+    "name": "",
+    "address": {
+      "street": "",
+      "city": "",
+      "state": "",
+      "zip": "",
+      "country": ""
+    },
+    "contact": {
+      "phone": "",
+      "email": "",
+      "website": ""
+    },
+    "tax_id": ""
+  },
+  "bill_to": {
+    "name": "",
+    "company": "",
+    "address": {
+      "street": "",
+      "city": "",
+      "state": "",
+      "zip": "",
+      "country": ""
+    },
+    "phone": "",
+    "email": "",
+    "customer_id": ""
+  },
+  "ship_to": {
+    "name": "",
+    "company": "",
+    "address": {
+      "street": "",
+      "city": "",
+      "state": "",
+      "zip": "",
+      "country": ""
+    }
+  },
+  "invoice_details": {
+    "invoice_number": null,
+    "purchase_order_number": "",
+    "invoice_date": null,
+    "due_date": "",
+    "payment_terms": ""
+  },
+  "line_items": [
+    {
+      "line_number": null,
+      "prod_code": "",
+      "barcode": "",
+      "product_name": "",
+      "description": "",
+      "packing": "",
+      "unit": "",
+      "unit_of_measure": "",
+      "qty": null,
+      "quantity": null,
+      "unit_price": null,
+      "gross_amount": null,
+      "discount": null,
+      "taxed": false,
+      "vat_percent": null,
+      "net_value": null,
+      "excise": null,
+      "total_incl_excise": null,
+      "vat_amount": null,
+      "amount": null
+    }
+  ],
+  "summary": {
+    "subtotal": null,
+    "discount_total": null,
+    "taxable_amount": null,
+    "tax_rate_percent": null,
+    "vat_total": null,
+    "shipping": null,
+    "other_charges": null,
+    "total_amount": 9.0,
+    "amount_paid": null,
+    "balance_due": null,
+    "currency": ""
+  },
+  "payment_instructions": {
+    "payable_to": "",
+    "payment_method": "",
+    "bank_details": {
+      "bank_name": "",
+      "account_name": "",
+      "account_number": "",
+      "ifsc_swift": ""
+    },
+    "notes": []
+  },
+  "codes": [],
+  "footer": {
+    "totals_summary": {
+      "total_discount": null,
+      "total_net_inv_value": null,
+      "total_excise": null,
+      "total_incl_excise": null,
+      "total_vat_aed": null,
+      "total_incl_vat_aed": null
+    },
+    "remarks_and_notes": {
+      "rebate_note": "",
+      "payment_terms": "",
+      "return_policy": "",
+      "delivery_remarks": ""
+    },
+    "processing_info": {
+      "prepared_by": "",
+      "printed_by": "",
+      "print_timestamp": "",
+      "warehouse_loc": ""
+    },
+    "notes": [],
+    "thank_you_note": ""
+  },
+  "_debug": {
+    "raw_text": "Ppt Lig §o Ly Thinay 555 a, 30R ALSABA GIFTS TRADING L.L.c TRN : 100344875800003 - All kinds of Travel\nProducts & Lugeages Ee Al Buteen > Murshid Bezar, Near Najeeba Hotel Deira, Dubai,, Tel: +974 43988164 A yan Mob\n: 05564 39045, 0554527763 30505459030 Ce eae t N To,EASY PICK HYPERMARKET “AD PH: BADA zay| O9/Jani26 Customer TRN:10034 9367700003\nlorderNo ae 01 |CN19300-3 JCN19300.3 BACK PACK-21\" 0) 35.001 “o.0/ 210.001 5.00 10.59) 220.50 02 | CN2424 CN242A SHOULDER BAG\n6.01 15.00} oo} soca! 5.09 4.50 94.50 03 | CN2202 ©N2202 BACK PACK22 8.0 45.00] 0.0) 270.001 5.00 13.50) 283.50\n04 | cnr77 CN777 BACK PACK 6.0) 35.00] 0.0) 270.00} 5.00 10.50, 220.50 05 | CN5096 CN5096 BACK BAG 8.01\n25.00) 0.0) 10.00; 5.00 7.50 157,59] 06 |CN4010 CN4010 BACK BAG 19 60; 35.001 0.0 210.00; 5.00) 10.50 220,50, O7\nJEN16509 | CN6S09 BACK BAG 22 80) 36.00, aol 2ta00! 5.00 10.50 220.50 08 | cns072 CN3072 BACK BAG-29 60)\n35.001 0.0! 210.001 5.00 10.50] 220.50 09 | CNeos CN605 WAIST BAG 24.0) 14.00) 0.0! 336.00] 5.00 16.89] 362.80 10\njon110 CN110 ROPE BAG 24.0) 10.00) 0.0; 240.00] 5.00 12.09 252.00 1f | CNo1686 CNO166 BACK BAG22 6.0) 35.00] 0.9,\n210.00] 8.00] 10.50 220.50| 12 |enioe3 CN1093 BACK BAG -25 6.0; 45.00] 0.0) 270.001 5.00 13.80 283.50 13 | CN2017\nCN2017 BACK PACK 6.0) 35.00) 0.0) 210.00; 5.00 10.50, 220.50 oe ge Naaman [eta0 fp eN a hie Receiver's Sign\nFor Neor Al Sabah Gift Trading L.t.c Email: nooralspba9@gmail.com | NE een",
+    "ocr_avg_confidence": 59.98809523809524,
+    "best_ocr_variant": {
+      "config": "--oem 1 --psm 6",
+      "prep": "prep_none",
+      "mean_conf": 59.98809523809524,
+      "numeric_tokens": 186,
+      "n_words": 252
+    },
+    "ocr_words_sample": [],
+    "parsed_line_items_count": 0,
+    "parsed_line_items_sample": [],
+    "computed_total": null,
+    "detected_total": null,
+    "detected_total_line": null
+  }
+}

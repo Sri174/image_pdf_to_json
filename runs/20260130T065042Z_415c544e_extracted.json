@@ -1,0 +1,180 @@
+{
+  "header": {
+    "vendor_details": {
+      "company_name_en": "",
+      "company_name_ar": "",
+      "address": "",
+      "contact_info": {
+        "head_office_tel": "",
+        "head_office_fax": "",
+        "showroom_tel": "",
+        "showroom_fax": "",
+        "email": ""
+      },
+      "tax_registration_number": ""
+    },
+    "invoice_details": {
+      "invoice_number": "",
+      "invoice_date": "",
+      "invoice_type": "",
+      "order_number": "",
+      "order_date": "",
+      "page_number": "",
+      "purchase_order_number": "",
+      "due_date": "",
+      "payment_terms": "",
+      "personnel": {
+        "sales_person": "",
+        "supervisor": "",
+        "merchandiser": ""
+      }
+    },
+    "customer_details": {
+      "customer_code": "",
+      "name": "",
+      "address": "",
+      "phone": "",
+      "email": "",
+      "trn": ""
+    }
+  },
+  "document_type": "invoice",
+  "company": {
+    "name": "",
+    "address": {
+      "street": "",
+      "city": "",
+      "state": "",
+      "zip": "",
+      "country": ""
+    },
+    "contact": {
+      "phone": "",
+      "email": "",
+      "website": ""
+    },
+    "tax_id": ""
+  },
+  "bill_to": {
+    "name": "",
+    "company": "",
+    "address": {
+      "street": "",
+      "city": "",
+      "state": "",
+      "zip": "",
+      "country": ""
+    },
+    "phone": "",
+    "email": "",
+    "customer_id": ""
+  },
+  "ship_to": {
+    "name": "",
+    "company": "",
+    "address": {
+      "street": "",
+      "city": "",
+      "state": "",
+      "zip": "",
+      "country": ""
+    }
+  },
+  "invoice_details": {
+    "invoice_number": null,
+    "purchase_order_number": "",
+    "invoice_date": null,
+    "due_date": "",
+    "payment_terms": ""
+  },
+  "line_items": [
+    {
+      "line_number": null,
+      "prod_code": "",
+      "barcode": "",
+      "product_name": "",
+      "description": "",
+      "packing": "",
+      "unit": "",
+      "unit_of_measure": "",
+      "qty": null,
+      "quantity": null,
+      "unit_price": null,
+      "gross_amount": null,
+      "discount": null,
+      "taxed": false,
+      "vat_percent": null,
+      "net_value": null,
+      "excise": null,
+      "total_incl_excise": null,
+      "vat_amount": null,
+      "amount": null
+    }
+  ],
+  "summary": {
+    "subtotal": null,
+    "discount_total": null,
+    "taxable_amount": null,
+    "tax_rate_percent": null,
+    "vat_total": null,
+    "shipping": null,
+    "other_charges": null,
+    "total_amount": 2.0,
+    "amount_paid": null,
+    "balance_due": null,
+    "currency": ""
+  },
+  "payment_instructions": {
+    "payable_to": "",
+    "payment_method": "",
+    "bank_details": {
+      "bank_name": "",
+      "account_name": "",
+      "account_number": "",
+      "ifsc_swift": ""
+    },
+    "notes": []
+  },
+  "codes": [],
+  "footer": {
+    "totals_summary": {
+      "total_discount": null,
+      "total_net_inv_value": null,
+      "total_excise": null,
+      "total_incl_excise": null,
+      "total_vat_aed": null,
+      "total_incl_vat_aed": null
+    },
+    "remarks_and_notes": {
+      "rebate_note": "",
+      "payment_terms": "",
+      "return_policy": "",
+      "delivery_remarks": ""
+    },
+    "processing_info": {
+      "prepared_by": "",
+      "printed_by": "",
+      "print_timestamp": "",
+      "warehouse_loc": ""
+    },
+    "notes": [],
+    "thank_you_note": ""
+  },
+  "_debug": {
+    "raw_text": "lala 9 clalelal _| Helse see alleles s4) , 3 a2oaa0agag sc alyn aa é ~2g222eseea] | o- 3 z\n$8888 85 888 § ; j st pO gs tle tle ee ¢ 4] 222220017 3, 2 gf we BRE\nB R/RlE/B RA FE 1d 82 ES SEIESESIEES 222 a®g #2 |g | 32 22 /clelelslelelgig.as 98 ess ala] J\n/|g. Be UEGS |z|e/8/8/8/8/8/8 2 @ 2 iF GEESE [glalelalalalals s a 8 | seeeke |i alelslslglas gle a/5/812/4|3 8\n2/8 ‘ i Blew le eh) |_| 30 ge ‘slg gglelz al cz LAYS eal aE! aleliiy giale Ba) o|\nVy que € wl E % wy S er ~ | fel sle/2/elais zleale cn 32 “8 alETRSTE/S/218 2) 2/3\n$2 alzle 2] 2/8 Size gs 2/8/8]518/8/8 & Z/8/6 3 Oo elelzleletelé = elelé sly & 2 * aE |,\nae ale{Slols ao bal ai[elsfelt = ele S| FPFraln pele Fla of Elelrle|Slele z tf 3/8 Aes ells 2 ele\n& P y | 3 | 3 HN : aN 2a KEN |E NG Lous aI TSlEIEIEN|S pedis 2 |\na 2Velaieie|2 gi 8 gl fo. 33 qlalalg ila ads dp. ye lal BalSlGiglh EEGs 3 EVEVE/RIE/a/8 3 3 8\nSy at alalg sla my : bee 7 | (ElER GEE 2 EE SEE HAL ila TE j NIA ASIEN\n} il ;",
+    "ocr_avg_confidence": 30.919282511210763,
+    "best_ocr_variant": {
+      "config": "--oem 1 --psm 6",
+      "prep": "prep_none",
+      "mean_conf": 30.919282511210763,
+      "numeric_tokens": 81,
+      "n_words": 223
+    },
+    "ocr_words_sample": [],
+    "parsed_line_items_count": 0,
+    "parsed_line_items_sample": [],
+    "computed_total": null,
+    "detected_total": null,
+    "detected_total_line": null
+  }
+}
