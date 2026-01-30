@@ -1,0 +1,51 @@
+# Environment and secrets
+.env
+.env.*
+.vscode/
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# IDE / editor
+.idea/
+*.sublime-workspace
+
+# Build / distribution
+dist/
+build/
+*.egg-info/
+
+# Runs / outputs
+runs/
+
+# Temporary files
+*.tmp
+*.bak
+
+# Ignore compiled models, large binaries
+*.pt
+*.pth
+
+# Coverage
+htmlcov/
+.coverage
+
+# Secrets - keep local only
+secrets.json
+
+# Node
+node_modules/
+
+# Other
+*.swp
