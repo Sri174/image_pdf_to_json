@@ -10,7 +10,7 @@ google-auth>=2.20.0
 # Image / PDF processing
 pdf2image>=1.16.3
 pdfplumber>=0.7.6
-opencv-python>=4.7.0.72
+opencv-python-headless>=4.7.0.72
 numpy>=1.24.2
 
 # Barcode / QR decoding
