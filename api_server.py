@@ -124,6 +124,13 @@ async def convert(file: UploadFile = File(...)):
         filename = file.filename or "upload"
         suffix = filename.lower().split(".")[-1]
 
+      # 🔍 DEBUG: Check Gemini API key visibility in Render
+        if not os.getenv("GEMINI_API_KEY"):
+          return {
+            "status": "ERROR",
+            "reason": "GEMINI_API_KEY_NOT_FOUND"
+          }
+
         images: List[bytes] = []
 
         # PDF handling
