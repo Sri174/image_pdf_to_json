@@ -14,6 +14,14 @@ import numpy as np
 
 app = FastAPI(title="Invoice Conversion API")
 
+@app.get("/")
+def health():
+    return {
+        "status": "Invoice API running",
+        "endpoint": "/convert",
+        "method": "POST"
+    }
+
 
 @app.post("/convert")
 async def convert(file: UploadFile = File(...)):
