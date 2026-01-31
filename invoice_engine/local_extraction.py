@@ -20,6 +20,29 @@ import numpy as np
 from pytesseract import Output
 
 
+import cv2
+import numpy as np
+
+def preprocess_for_ocr(image_bytes):
+    img = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_GRAYSCALE)
+
+    # resize
+    img = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+
+    # denoise
+    img = cv2.fastNlMeansDenoising(img, h=30)
+
+    # threshold
+    img = cv2.adaptiveThreshold(
+        img, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY,
+        31, 2
+    )
+
+    return img
+
+
 def _ocr_with_variants(pil_img: Image.Image, try_lang: Optional[str] = None, fast: bool = True):
     """Run preprocessing + tesseract-config variants and return best (text, debug dict).
 
