@@ -5,16 +5,10 @@
 services:
   - type: web
     name: invoice-processor
-    env: python
+    env: docker
     region: oregon
     plan: free
     repo: https://github.com/Sri174/image_pdf_to_json.git
     branch: main
     autoDeploy: true
 
-    buildCommand: |
-      apt-get update &&
-      apt-get install -y libzbar0 libgl1 poppler-utils &&
-      pip install -r requirements.txt
-
-    startCommand: streamlit run streamlit_app.py --server.port $PORT --server.headless true
