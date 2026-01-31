@@ -24,20 +24,39 @@ import cv2
 import numpy as np
 
 def preprocess_for_ocr(image_bytes):
-    img = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_GRAYSCALE)
+    """Preprocess raw JPEG/PNG bytes for OCR.
 
-    # resize
-    img = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    Steps:
+    - Decode to grayscale for simpler processing.
+    - Upscale 2x to help Tesseract on small scans.
+    - Denoise using Non-local Means (preserves edges while removing noise).
+    - Apply adaptive thresholding to binarize unevenly lit scans.
 
-    # denoise
-    img = cv2.fastNlMeansDenoising(img, h=30)
+    These steps improve OCR accuracy for low-quality scanned invoices.
+    """
+    # Decode into grayscale image
+    arr = np.frombuffer(image_bytes, np.uint8)
+    img = cv2.imdecode(arr, cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        # fallback: try PIL decode
+        try:
+            pil = Image.open(BytesIO(image_bytes)).convert("L")
+            img = np.array(pil)
+        except Exception:
+            raise
 
-    # threshold
+    # Upscale 2x (helps OCR for low-DPI scans)
+    img = cv2.resize(img, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC)
+
+    # Noise removal (preserve edges)
+    img = cv2.fastNlMeansDenoising(img, None, h=20)
+
+    # Adaptive threshold to handle variable lighting
     img = cv2.adaptiveThreshold(
         img, 255,
         cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
         cv2.THRESH_BINARY,
-        31, 2
+        25, 10
     )
 
     return img
@@ -103,14 +122,14 @@ def _ocr_with_variants(pil_img: Image.Image, try_lang: Optional[str] = None, fas
     # Choose a small, fast, high-quality set when requested
     if fast:
         preps = [prep_none, prep_clahe, prep_unsharp]
-        # Prefer a single stable PSM for mixed text/layout (6 = assume a block of text)
-        psm_opts = [6]
-        oem_opts = [1]
+        # Prefer OEM 3 (LSTM) and try PSMs suited for invoices (4 = single column, 6 = block)
+        psm_opts = [4, 6]
+        oem_opts = [3]
     else:
         preps = [prep_none, prep_clahe, prep_bilateral, prep_unsharp, prep_median, prep_morph, prep_adapt_small]
         # tesseract configs to try (include more PSMs for layout variants)
         psm_opts = [3, 4, 6, 7, 11]
-        oem_opts = [1, 3]
+        oem_opts = [3, 1]
 
     best = None
     best_score = -1.0
@@ -300,7 +319,10 @@ def local_extract_invoice(image_bytes: bytes, lang: Optional[str] = None, fast: 
     """
     template = _load_schema_template()
     raw_text = ""
-    debug = {"words": [], "avg_confidence": None}
+    # initialize debug and total candidates
+    debug = {"words": [], "ocr_avg_confidence": None}
+    detected_total = None
+    total_amount = None
     try:
         pil_img = Image.open(BytesIO(image_bytes)).convert("RGB")
         # Preprocess with OpenCV for better OCR: grayscale, resize, denoise, adaptive threshold
@@ -333,7 +355,8 @@ def local_extract_invoice(image_bytes: bytes, lang: Optional[str] = None, fast: 
                 best_text, best_dbg = _ocr_with_variants(proc_pil, try_lang, fast)
                 ocr_text = best_text or ""
                 debug['words'] = []
-                debug['avg_confidence'] = best_dbg.get('mean_conf') if isinstance(best_dbg, dict) else None
+                # keep an explicit ocr_avg_confidence field (0..100)
+                debug['ocr_avg_confidence'] = best_dbg.get('mean_conf') if isinstance(best_dbg, dict) else None
                 # store variant info
                 debug['best_ocr_variant'] = best_dbg
                 raw_text = ocr_text
@@ -344,6 +367,23 @@ def local_extract_invoice(image_bytes: bytes, lang: Optional[str] = None, fast: 
                 continue
         # Normalize OCR text conservatively to improve heuristics
         text = _normalize_ocr_text(raw_text)
+        # collect OCR word boxes/sample for debug (best effort)
+        try:
+            from pytesseract import image_to_data
+            data_words = image_to_data(proc_pil, output_type=Output.DICT)
+            words_sample = []
+            for i, t in enumerate(data_words.get('text', [])):
+                if t and t.strip():
+                    words_sample.append({
+                        'text': t,
+                        'left': data_words.get('left', [])[i],
+                        'top': data_words.get('top', [])[i],
+                        'width': data_words.get('width', [])[i],
+                        'height': data_words.get('height', [])[i],
+                    })
+            debug['words'] = words_sample
+        except Exception:
+            debug['words'] = []
         # Run a digit-only OCR pass to improve numeric token detection (totals, amounts)
         numeric_candidates = []
         try:
@@ -366,6 +406,24 @@ def local_extract_invoice(image_bytes: bytes, lang: Optional[str] = None, fast: 
                     total_amount = cand if total_amount is None else total_amount
             except Exception:
                 pass
+        # Early confidence gate: if OCR average confidence is low, skip heavy parsing
+        try:
+            avg_conf = float(debug.get('ocr_avg_confidence') or 0.0)
+        except Exception:
+            avg_conf = 0.0
+        # Attach truncated raw_text for debug
+        debug_raw_trunc = (raw_text or "")[:500]
+        if avg_conf < 45.0:
+            # Return template with NEEDS_REVIEW and debug info (avoid incorrect mapping)
+            template["_debug"] = {
+                "raw_text": debug_raw_trunc,
+                "ocr_avg_confidence": avg_conf,
+                "best_ocr_variant": debug.get('best_ocr_variant'),
+                "ocr_words_sample": debug.get('words', [])[:40],
+                "parsed_line_items_count": 0,
+            }
+            template["status"] = "NEEDS_REVIEW"
+            return template
     except Exception:
         text = ""
 
@@ -702,7 +760,7 @@ def local_extract_invoice(image_bytes: bytes, lang: Optional[str] = None, fast: 
     # Attach debug info so callers can inspect OCR raw text and confidences
     template["_debug"] = {
         "raw_text": text,
-        "ocr_avg_confidence": debug.get("avg_confidence"),
+        "ocr_avg_confidence": debug.get("ocr_avg_confidence"),
         "best_ocr_variant": debug.get("best_ocr_variant"),
         "ocr_words_sample": debug.get("words", [])[:40],
         "parsed_line_items_count": len(parsed_items) if parsed_items else 0,
