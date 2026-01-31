@@ -130,7 +130,7 @@ with tab1:
                     try:
                         from pdf2image import convert_from_path
                         from io import BytesIO
-                        images = convert_from_path(tmp_path, poppler_path=r"C:\Program Files\poppler-25.12.0\Library\bin")
+                        images = convert_from_path(tmp_path)
                         page_bytes_list = []
                         for page in images:
                             buf = BytesIO()

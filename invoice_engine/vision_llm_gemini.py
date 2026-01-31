@@ -37,7 +37,7 @@ REQUIRED_FIELD_PATHS = [
 
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 # Read API key from environment where possible; fall back to hardcoded (not recommended)
-GEMINI_API_KEY =  "AIzaSyClE4TV8afsGxEO9YLAaWQJ0XCBCYQog0M"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 
 SYSTEM_PROMPT = (
