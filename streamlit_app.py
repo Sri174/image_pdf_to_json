@@ -36,6 +36,7 @@ from PIL import Image
 import tempfile
 import os
 import json
+import requests
 import shutil
 import copy
 from datetime import datetime
@@ -47,6 +48,37 @@ from invoice_engine.multipage_parser import parse_multipage_invoice
 from invoice_engine.duplicate_check import is_duplicate
 from invoice_engine.pages_to_json import consolidate_invoice_from_pages
 import pytesseract
+
+def post_pdf_and_get_json_prompt(api_url, pdf_bytes=None, pdf_path=None, file_field_name='file', headers=None, timeout=30):
+    """
+    POST a PDF to `api_url` and return the API's JSON response (or a wrapper dict).
+
+    Provide either `pdf_bytes` or `pdf_path`. The file will be sent as multipart/form-data
+    under the form field named `file_field_name` (default: 'file').
+    """
+    if pdf_bytes is None and pdf_path is None:
+        raise ValueError("Either pdf_bytes or pdf_path must be provided")
+
+    opened_file = None
+    try:
+        if pdf_bytes is not None:
+            files = {file_field_name: ('invoice.pdf', pdf_bytes, 'application/pdf')}
+        else:
+            opened_file = open(pdf_path, 'rb')
+            files = {file_field_name: (os.path.basename(pdf_path), opened_file, 'application/pdf')}
+
+        resp = requests.post(api_url, files=files, headers=headers or {}, timeout=timeout)
+        resp.raise_for_status()
+        try:
+            return resp.json()
+        except Exception:
+            return {"status": "OK", "raw_response": resp.text}
+    finally:
+        try:
+            if opened_file:
+                opened_file.close()
+        except Exception:
+            pass
 
 EXISTING_INVOICES = []  # In production, load from DB or file
 
