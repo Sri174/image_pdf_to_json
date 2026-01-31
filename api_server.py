@@ -8,6 +8,9 @@ from io import BytesIO
 from invoice_engine.barcode_extraction import extract_codes_from_images
 from invoice_engine.local_extraction import local_extract_invoice
 from invoice_engine.multipage_parser import parse_multipage_invoice
+from PIL import Image
+import cv2
+import numpy as np
 
 app = FastAPI(title="Invoice Conversion API")
 
@@ -24,12 +27,12 @@ async def convert(file: UploadFile = File(...)):
         suffix = os.path.splitext(file.filename or "")[1].lower()
 
         page_bytes_list = None
-        # Convert PDF to images when necessary
+        # Convert PDF to images when necessary (use higher DPI)
         if suffix == ".pdf":
             try:
                 from pdf2image import convert_from_bytes
 
-                images = convert_from_bytes(content)
+                images = convert_from_bytes(content, dpi=300)
                 page_bytes_list = []
                 for page in images:
                     buf = BytesIO()
@@ -40,6 +43,53 @@ async def convert(file: UploadFile = File(...)):
                 raise HTTPException(status_code=500, detail=f"PDF->image conversion failed: {e}")
         else:
             image_bytes = content
+
+        def preprocess_image_bytes(img_bytes):
+            try:
+                arr = np.frombuffer(img_bytes, dtype=np.uint8)
+                img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+                if img is None:
+                    # fallback via PIL
+                    pil = Image.open(BytesIO(img_bytes)).convert("RGB")
+                    arr = np.array(pil)[:, :, ::-1].copy()
+                    img = arr
+
+                # convert to grayscale
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                # denoise
+                den = cv2.fastNlMeansDenoising(gray, None, h=10)
+                # adaptive threshold
+                th = cv2.adaptiveThreshold(den, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+
+                # optional deskew: compute moments / angle
+                coords = np.column_stack(np.where(th > 0))
+                if coords.shape[0] > 0:
+                    rect = cv2.minAreaRect(coords)
+                    angle = rect[-1]
+                    if angle < -45:
+                        angle = -(90 + angle)
+                    else:
+                        angle = -angle
+                    if abs(angle) > 0.1:
+                        (h, w) = th.shape
+                        center = (w // 2, h // 2)
+                        M = cv2.getRotationMatrix2D(center, angle, 1.0)
+                        th = cv2.warpAffine(th, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+
+                # encode back to JPEG bytes
+                ok, enc = cv2.imencode('.jpg', th)
+                if ok:
+                    return enc.tobytes()
+            except Exception:
+                pass
+            return img_bytes
+
+        # Preprocess pages/images to improve OCR
+        if page_bytes_list:
+            page_bytes_list = [preprocess_image_bytes(b) for b in page_bytes_list]
+            image_bytes = page_bytes_list[0] if page_bytes_list else image_bytes
+        else:
+            image_bytes = preprocess_image_bytes(image_bytes)
 
         # Extract barcodes deterministically
         try:
