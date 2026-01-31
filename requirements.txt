@@ -1,23 +1,15 @@
-# Core
-streamlit>=1.26.0
-pillow>=9.5.0
-requests>=2.31.0
-httpx>=0.28.1
-
-# Google / Gemini
-google-auth>=2.20.0
-
-# PDF / Image
-pdf2image>=1.16.3
+fastapi>=0.95.0
+uvicorn[standard]>=0.22.0
+python-multipart>=0.0.6
+Pillow>=9.5.0
 pdfplumber>=0.7.6
-opencv-python-headless>=4.7.0.72
-numpy>=1.24.2
+pdf2image>=1.16.3
+requests>=2.31.0
+pytest>=7.0.0
 
-# OCR
-pytesseract
-
-# Barcode
-pyzbar>=0.1.9
+# Note: heavy native libraries (zbar, system poppler/tesseract) are not
+# required at install-time. The Dockerfile installs `poppler-utils` and
+# `tesseract-ocr` so OCR and PDF->image conversion work in the container.
 
 # API server
 fastapi>=0.95.0

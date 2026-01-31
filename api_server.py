@@ -1,18 +1,138 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
+"""
+Production-ready FastAPI server for invoice extraction.
+
+Design decisions (brief):
+- Avoid heavy/native imports at module import time to ensure the app never
+  fails at startup on platforms (like Render) that may lack native libraries.
+- Barcode extraction is optional and modular; by default it returns an
+  empty list so the service is Render-safe. Extensions can add OpenCV or
+  cloud-based barcode extraction without changing core code.
+- Gemini Vision is used when `GEMINI_API_KEY` is present; otherwise the
+  app falls back to local OCR. All external integrations are attempted
+  lazily and errors are caught and returned as structured JSON.
+
+Endpoints:
+- GET /        : health check
+- POST /convert: multipart/form-data upload (file) -> JSON invoice
+
+"""
+
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi.responses import JSONResponse
+from typing import List, Optional
 import os
 import json
 import tempfile
 from io import BytesIO
-
-from invoice_engine.barcode_extraction import extract_codes_from_images
-from invoice_engine.local_extraction import local_extract_invoice
-from invoice_engine.multipage_parser import parse_multipage_invoice
-from PIL import Image
-import cv2
-import numpy as np
+import logging
 
 app = FastAPI(title="Invoice Conversion API")
+logger = logging.getLogger("invoice_api")
+
+
+@app.get("/")
+def health():
+    return {"status": "Invoice API running", "endpoint": "/convert", "method": "POST"}
+
+
+def _safe_extract_barcodes(images: List[bytes]) -> List[dict]:
+    """Attempt barcode extraction using optional libraries.
+
+    - This function performs dynamic imports and will return an empty list
+      if no safe barcode provider is available. Do not raise on missing
+      native libs.
+    - Current default: return [] (Render-safe). Later this can try
+      OpenCV QRCodeDetector or call an external microservice.
+    """
+    try:
+        # Example optional OpenCV-based QR detection (only if installed)
+        import cv2
+
+        results = []
+        qr = cv2.QRCodeDetector()
+        for b in images:
+            arr = None
+            try:
+                import numpy as np
+
+                arr = np.frombuffer(b, dtype=np.uint8)
+                img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+                if img is None:
+                    continue
+                data, points, _ = qr.detectAndDecode(img)
+                if data:
+                    results.append({"type": "QR", "value": data, "confidence": 1.0})
+            except Exception:
+                continue
+        return results
+    except Exception:
+        # No optional barcode libs available — return empty list (safe)
+        return []
+
+
+def _convert_pdf_to_images_bytes(pdf_bytes: bytes, dpi: int = 300) -> Optional[List[bytes]]:
+    """Try to convert PDF bytes to a list of JPEG-encoded page bytes.
+
+    This function attempts `pdf2image.convert_from_bytes` lazily. If the
+    conversion is not possible (missing poppler or pdf2image), it returns
+    None and the caller can fall back to text-based extraction.
+    """
+    try:
+        from pdf2image import convert_from_bytes
+
+        images = convert_from_bytes(pdf_bytes, dpi=dpi)
+        out = []
+        for page in images:
+            buf = BytesIO()
+            page.save(buf, format="JPEG")
+            out.append(buf.getvalue())
+        return out
+    except Exception as e:
+        logger.warning("PDF->image conversion unavailable or failed: %s", e)
+        return None
+
+
+def _use_gemini_if_available(images: List[bytes]) -> Optional[dict]:
+    """Call Gemini Vision path if `GEMINI_API_KEY` is present.
+
+    Errors are caught and None returned on failure so callers can fallback.
+    """
+    if not os.getenv("GEMINI_API_KEY"):
+        return None
+    try:
+        from invoice_engine.vision_llm_gemini import extract_invoice_with_gemini
+
+        return extract_invoice_with_gemini(images)
+    except Exception as e:
+        logger.exception("Gemini extraction failed: %s", e)
+        return None
+
+
+def _local_extraction_from_image(image_bytes: bytes, lang: Optional[str] = None) -> dict:
+    """Fallback local OCR-based extraction.
+
+    This imports local extraction functions lazily to avoid startup-time
+    failures when optional packages (like pytesseract) are missing.
+    """
+    try:
+        from invoice_engine.local_extraction import local_extract_invoice
+
+        return local_extract_invoice(image_bytes, lang=lang)
+    except Exception as e:
+        logger.exception("Local extraction failed: %s", e)
+        return {"status": "NEEDS_REVIEW", "error": "local_extraction_failed", "error_detail": str(e)}
+
+
+def _local_multipage_extraction(pdf_path: str) -> dict:
+    try:
+        from invoice_engine.multipage_parser import parse_multipage_invoice
+
+        return parse_multipage_invoice(pdf_path)
+    except Exception as e:
+        logger.exception("Multipage extraction failed: %s", e)
+        return {"status": "NEEDS_REVIEW", "error": "multipage_extraction_failed", "error_detail": str(e)}
 
 @app.get("/")
 def health():
@@ -24,118 +144,69 @@ def health():
 
 
 @app.post("/convert")
-async def convert(file: UploadFile = File(...)):
-    """Accept a PDF or image upload and return the converted invoice JSON.
+async def convert(file: UploadFile = File(...), request: Request = None):
+    """Accept a PDF/image file and return structured invoice JSON.
 
-    - Supports PDF and common image formats.
-    - Prefers Gemini if `GEMINI_API_KEY` is present, otherwise falls back to local extraction.
+    Behavior:
+    - If PDF: try to convert to images (dpi=300). If conversion is unavailable,
+      fall back to multipage/text extraction when possible.
+    - If `GEMINI_API_KEY` present: prefer Gemini vision API.
+    - Always keep barcode extraction optional and non-fatal.
     """
     try:
         content = await file.read()
-        suffix = os.path.splitext(file.filename or "")[1].lower()
+        filename = file.filename or "upload"
+        suffix = os.path.splitext(filename)[1].lower()
 
+        page_bytes = None
         page_bytes_list = None
-        # Convert PDF to images when necessary (use higher DPI)
+
         if suffix == ".pdf":
-            try:
-                from pdf2image import convert_from_bytes
-
-                images = convert_from_bytes(content, dpi=300)
-                page_bytes_list = []
-                for page in images:
-                    buf = BytesIO()
-                    page.save(buf, format="JPEG")
-                    page_bytes_list.append(buf.getvalue())
-                image_bytes = page_bytes_list[0] if page_bytes_list else b""
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"PDF->image conversion failed: {e}")
+            page_bytes_list = _convert_pdf_to_images_bytes(content, dpi=300)
+            # If conversion failed, try multipage parser path later
+            if page_bytes_list:
+                page_bytes = page_bytes_list[0]
         else:
-            image_bytes = content
+            page_bytes = content
 
-        def preprocess_image_bytes(img_bytes):
-            try:
-                arr = np.frombuffer(img_bytes, dtype=np.uint8)
-                img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-                if img is None:
-                    # fallback via PIL
-                    pil = Image.open(BytesIO(img_bytes)).convert("RGB")
-                    arr = np.array(pil)[:, :, ::-1].copy()
-                    img = arr
-
-                # convert to grayscale
-                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                # denoise
-                den = cv2.fastNlMeansDenoising(gray, None, h=10)
-                # adaptive threshold
-                th = cv2.adaptiveThreshold(den, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-
-                # optional deskew: compute moments / angle
-                coords = np.column_stack(np.where(th > 0))
-                if coords.shape[0] > 0:
-                    rect = cv2.minAreaRect(coords)
-                    angle = rect[-1]
-                    if angle < -45:
-                        angle = -(90 + angle)
-                    else:
-                        angle = -angle
-                    if abs(angle) > 0.1:
-                        (h, w) = th.shape
-                        center = (w // 2, h // 2)
-                        M = cv2.getRotationMatrix2D(center, angle, 1.0)
-                        th = cv2.warpAffine(th, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
-
-                # encode back to JPEG bytes
-                ok, enc = cv2.imencode('.jpg', th)
-                if ok:
-                    return enc.tobytes()
-            except Exception:
-                pass
-            return img_bytes
-
-        # Preprocess pages/images to improve OCR
-        if page_bytes_list:
-            page_bytes_list = [preprocess_image_bytes(b) for b in page_bytes_list]
-            image_bytes = page_bytes_list[0] if page_bytes_list else image_bytes
-        else:
-            image_bytes = preprocess_image_bytes(image_bytes)
-
-        # Extract barcodes deterministically
+        # Barcode extraction (optional and safe)
         try:
-            codes = extract_codes_from_images(page_bytes_list if page_bytes_list else [image_bytes])
+            barcode_list = _safe_extract_barcodes(page_bytes_list if page_bytes_list else ([page_bytes] if page_bytes else []))
         except Exception:
-            codes = []
+            barcode_list = []
 
+        # Prefer Gemini when available
         result_json = None
-        prefer_gemini = bool(os.getenv("GEMINI_API_KEY"))
-        if prefer_gemini:
+        if (page_bytes_list or page_bytes) and os.getenv("GEMINI_API_KEY"):
+            imgs = page_bytes_list if page_bytes_list else [page_bytes]
             try:
-                from invoice_engine.vision_llm_gemini import extract_invoice_with_gemini
-
-                gemini_images = page_bytes_list if page_bytes_list else [image_bytes]
-                result_json = extract_invoice_with_gemini(gemini_images)
+                result_json = _use_gemini_if_available(imgs)
             except Exception:
                 result_json = None
 
+        # Local extraction fallback
         if result_json is None:
-            try:
-                if page_bytes_list and len(page_bytes_list) > 1:
-                    # parse_multipage_invoice expects a file path, write a temp file
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tf:
-                        tf.write(content)
-                        tmp_path = tf.name
+            if suffix == ".pdf":
+                # If we have page images, use multipage/local logic; otherwise write temp PDF and try multipage parser
+                if page_bytes_list:
+                    # Use first page local OCR for a quick pass
+                    result_json = _local_extraction_from_image(page_bytes_list[0])
+                else:
+                    # write temp pdf and call multipage parser
                     try:
-                        result_json = parse_multipage_invoice(tmp_path)
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tf:
+                            tf.write(content)
+                            tmp_path = tf.name
+                        result_json = _local_multipage_extraction(tmp_path)
                     finally:
                         try:
                             os.remove(tmp_path)
                         except Exception:
                             pass
-                else:
-                    result_json = local_extract_invoice(image_bytes, lang=None)
-            except Exception as e:
-                result_json = {"status": "NEEDS_REVIEW", "error": str(e), "codes": codes}
+            else:
+                result_json = _local_extraction_from_image(page_bytes)
 
-        # Normalize result
+        # Normalize response and ensure barcode field present
         if isinstance(result_json, str):
             try:
                 result_json = json.loads(result_json)
@@ -143,13 +214,14 @@ async def convert(file: UploadFile = File(...)):
                 result_json = {"status": "NEEDS_REVIEW", "raw_text": result_json}
 
         if isinstance(result_json, dict):
-            result_json.setdefault("codes", codes)
+            result_json.setdefault("codes", barcode_list)
         else:
-            result_json = {"status": "NEEDS_REVIEW", "raw_response": str(result_json), "codes": codes}
+            result_json = {"status": "NEEDS_REVIEW", "raw_response": str(result_json), "codes": barcode_list}
 
         return JSONResponse(content=result_json)
 
-    except HTTPException:
-        raise
     except Exception as e:
+        logger.exception("Unhandled error in /convert: %s", e)
+        raise HTTPException(status_code=500, detail="internal_server_error")
+
         raise HTTPException(status_code=500, detail=str(e))
