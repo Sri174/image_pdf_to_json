@@ -1,10 +1,3 @@
-Love this stage 😄 — this is where your project starts to **look professional**.
-
-Below is a **clean, modern, production-ready README.md** you can copy-paste directly.
-It’s written to impress **clients, reviewers, and recruiters**.
-
----
-
 # 📄 Universal Invoice Processing Engine
 
 ### AI-Powered PDF & Image → Structured JSON Converter
