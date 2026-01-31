@@ -1,5 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse
+
 """
 Production-ready FastAPI server for invoice extraction.
 
@@ -30,11 +29,6 @@ import logging
 
 app = FastAPI(title="Invoice Conversion API")
 logger = logging.getLogger("invoice_api")
-
-
-@app.get("/")
-def health():
-    return {"status": "Invoice API running", "endpoint": "/convert", "method": "POST"}
 
 
 def _safe_extract_barcodes(images: List[bytes]) -> List[dict]:
@@ -83,6 +77,7 @@ def _convert_pdf_to_images_bytes(pdf_bytes: bytes, dpi: int = 300) -> Optional[L
         from pdf2image import convert_from_bytes
 
         images = convert_from_bytes(pdf_bytes, dpi=dpi)
+
         out = []
         for page in images:
             buf = BytesIO()
@@ -223,5 +218,3 @@ async def convert(file: UploadFile = File(...), request: Request = None):
     except Exception as e:
         logger.exception("Unhandled error in /convert: %s", e)
         raise HTTPException(status_code=500, detail="internal_server_error")
-
-        raise HTTPException(status_code=500, detail=str(e))
